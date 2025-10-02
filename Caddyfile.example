@@ -1,0 +1,14 @@
+{
+	debug
+}
+
+https://{$TEST_HOSTNAME} {
+	tls {
+		issuer cloudflare_origin_ca {
+			service_key {$CF_ORIGIN_CA_SERVICE_KEY}
+			# for testing, use short-lived certs
+			validity 7d
+		}
+	}
+	respond "Hello world!"
+}
