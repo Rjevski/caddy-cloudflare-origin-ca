@@ -4,6 +4,12 @@ This module implements support for automatically obtaining certificates for Clou
 
 If your Caddy is only intended to be reachable from behind Cloudflare, using their CA allows you to avoid involving an additional third-party such as a publicly-trusted CA. More info in their [introductory blog post](https://blog.cloudflare.com/cloudflare-ca-encryption-origin/).
 
+## Known issues
+
+Renewal at runtime currently does not work due to Cloudflare overriding the CommonName in the returned certificate, see upstream discussion: https://github.com/caddyserver/certmagic/issues/356. The renewed cert is correctly written to storage, but will not be loaded until the next server restart (if you are already affected by the problem, simply restarting the server should fix it).
+
+As a workaround, set the requested validity to the 15-year max. This is the default, so simply omit the `validity` config key.
+
 ## Installation
 
 Take the Dockerfile in this repo, tweak it if necessary, build it and push it to your private container registry.
@@ -23,8 +29,8 @@ https://example.com {
 	tls {
 		issuer cloudflare_origin_ca {
 			service_key "<YOUR API KEY HERE>"
-			# optional
-			validity 7d
+			# optional - do not set it low as renewal does not work, see "known issues"
+			# validity 7d
 		}
 	}
 	respond "Hello world!"
