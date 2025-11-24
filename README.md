@@ -76,9 +76,12 @@ Example:
     }
     
     cert_issuer cloudflare_origin_ca {
+		# either provide a service key:
 		service_key "<YOUR ORIGIN CA KEY HERE>"
-		# optional
-		validity 7d
+		# ...or provide a scoped API token:
+		# account_api_token "<YOUR ACCOUNT API TOKEN HERE>"
+		# optional - do not set it low as renewal does not work, see "known issues"
+		# validity 7d
 	}
 }
 
