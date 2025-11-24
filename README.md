@@ -31,7 +31,7 @@ https://example.com {
 			# either provide a service key:
 			service_key "<YOUR ORIGIN CA KEY HERE>"
 			# ...or provide a scoped API token:
-			# api_key "<YOUR ACCOUNT API TOKEN HERE>"
+			# account_api_token "<YOUR ACCOUNT API TOKEN HERE>"
 			# optional - do not set it low as renewal does not work, see "known issues"
 			# validity 7d
 		}
@@ -47,7 +47,7 @@ Note: it's not recommended to hardcode API keys in your Caddyfile directly, inst
 ```
 service_key {$CF_ORIGIN_CA_SERVICE_KEY}
 # or:
-# api_key {$CF_ACCOUNT_API_TOKEN}
+# account_api_token {$CF_ACCOUNT_API_TOKEN}
 ```
 
 ### "Custom Hostnames"

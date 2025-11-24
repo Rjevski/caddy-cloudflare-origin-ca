@@ -16,18 +16,18 @@ const (
 
 // Client handles communication with the Cloudflare Origin CA API
 type Client struct {
-	serviceKey string
-	apiKey     string
-	baseURL    string
-	httpClient *http.Client
+	serviceKey      string
+	accountAPIToken string
+	baseURL         string
+	httpClient      *http.Client
 }
 
 // NewClient creates a new Cloudflare Origin CA API client
-func NewClient(serviceKey, apiKey string, options ...ClientOption) *Client {
+func NewClient(serviceKey, accountAPIToken string, options ...ClientOption) *Client {
 	c := &Client{
-		serviceKey: serviceKey,
-		apiKey:     apiKey,
-		baseURL:    DefaultCertificateAPIBaseURL,
+		serviceKey:      serviceKey,
+		accountAPIToken: accountAPIToken,
+		baseURL:         DefaultCertificateAPIBaseURL,
 		httpClient: &http.Client{
 			Timeout: 30 * time.Second,
 		},
@@ -198,8 +198,8 @@ func (c *Client) applyAuthHeaders(req *http.Request) error {
 	switch {
 	case c.serviceKey != "":
 		req.Header.Set("X-Auth-User-Service-Key", c.serviceKey)
-	case c.apiKey != "":
-		req.Header.Set("Authorization", fmt.Sprintf("Bearer %s", c.apiKey))
+	case c.accountAPIToken != "":
+		req.Header.Set("Authorization", fmt.Sprintf("Bearer %s", c.accountAPIToken))
 	default:
 		return fmt.Errorf("cloudflare client missing authentication credentials")
 	}
