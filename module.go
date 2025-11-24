@@ -34,6 +34,9 @@ type CloudflareOriginCA struct {
 	// only allowed to manage certificates for a given zone
 	ServiceKey string `json:"service_key,omitempty"`
 
+	// Cloudflare account-scoped API token
+	APIKey string `json:"api_key,omitempty"`
+
 	// RequestedValidity is the duration for certificate validity (optional, max 15 years)
 	// If not specified, lets Cloudflare pick a default (currently 15 years)
 	RequestedValidity int `json:"requested_validity,omitempty"`
@@ -56,8 +59,12 @@ func (c *CloudflareOriginCA) Provision(ctx caddy.Context) error {
 	c.logger = ctx.Logger(c)
 
 	// Validate config
-	if c.ServiceKey == "" {
-		return fmt.Errorf("cloudflare service_key is required")
+	if c.ServiceKey == "" && c.APIKey == "" {
+		return fmt.Errorf("cloudflare service_key is required unless api_key is provided")
+	}
+
+	if c.ServiceKey != "" && c.APIKey != "" {
+		c.logger.Warn("both service_key and api_key provided; defaulting to service key")
 	}
 
 	if c.RequestedValidity != 0 && !slices.Contains(allowedValidityPeriods, c.RequestedValidity) {
@@ -70,7 +77,7 @@ func (c *CloudflareOriginCA) Provision(ctx caddy.Context) error {
 		opts = append(opts, WithBaseURL(c.BaseURL))
 	}
 
-	c.client = NewClient(c.ServiceKey, opts...)
+	c.client = NewClient(c.ServiceKey, c.APIKey, opts...)
 
 	return nil
 }
@@ -170,6 +177,11 @@ func (c *CloudflareOriginCA) UnmarshalCaddyfile(d *caddyfile.Dispenser) error {
 					return d.ArgErr()
 				}
 				c.ServiceKey = d.Val()
+			case "api_key":
+				if !d.NextArg() {
+					return d.ArgErr()
+				}
+				c.APIKey = d.Val()
 			case "validity":
 				if !d.NextArg() {
 					return d.ArgErr()
