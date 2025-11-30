@@ -82,6 +82,10 @@ https://example.com, https:// {
 }
 ```
 
+## Automatic cleanup
+
+All certificates issued by this module during a Caddy run are tracked and automatically revoked when the process shuts down (for example, when your container receives `SIGTERM`/`Cmd+C`). Routine configuration reloads do **not** trigger this cleanup, so certificates remain valid while the server keeps running, but they don't pile up once the process actually exits.
+
 ## Credits
 
 This work has been graciously funded by [JobMaps](https://jobmaps.ch).

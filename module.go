@@ -26,7 +26,10 @@ var requestTypeMap = map[x509.PublicKeyAlgorithm]string{
 }
 
 func init() {
-	caddy.RegisterModule(CloudflareOriginCA{})
+	caddy.RegisterModule(&CloudflareOriginCA{})
+	caddy.OnExit(func(ctx context.Context) {
+		issuedCerts.cleanup(ctx)
+	})
 }
 
 type CloudflareOriginCA struct {
@@ -45,7 +48,7 @@ type CloudflareOriginCA struct {
 	client *Client
 }
 
-func (CloudflareOriginCA) CaddyModule() caddy.ModuleInfo {
+func (*CloudflareOriginCA) CaddyModule() caddy.ModuleInfo {
 	return caddy.ModuleInfo{
 		ID:  "tls.issuance.cloudflare_origin_ca",
 		New: func() caddy.Module { return new(CloudflareOriginCA) },
@@ -119,6 +122,7 @@ func (c *CloudflareOriginCA) Issue(ctx context.Context, csr *x509.CertificateReq
 	}
 
 	c.logger.Debug("certificate issued successfully", zap.String("id", certID))
+	issuedCerts.track(c.logger, c.client, certID)
 
 	return &certmagic.IssuedCertificate{
 		Certificate: []byte(cert),
@@ -148,15 +152,8 @@ func (c *CloudflareOriginCA) Revoke(ctx context.Context, cert certmagic.Certific
 		return err
 	}
 
-	if result.AlreadyRevoked {
-		c.logger.Info("certificate already revoked", zap.String("id", certID))
-	} else if result.NotFound {
-		c.logger.Warn("certificate not found in database, treating as already revoked", zap.String("id", certID))
-	} else {
-		c.logger.Info("certificate revoked successfully",
-			zap.String("id", certID),
-			zap.String("revoked_at", result.RevokedAt))
-	}
+	logRevocationResult(c.logger, certID, result)
+	issuedCerts.forget(c.client, certID)
 
 	return nil
 }
