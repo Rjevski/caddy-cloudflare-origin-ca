@@ -84,7 +84,7 @@ https://example.com, https:// {
 
 ## Automatic cleanup (opt-in)
 
-If you enable `revoke_on_exit`, all certificates issued by this module during a Caddy run are tracked and automatically revoked when the process shuts down (for example, when your container receives `SIGTERM`/`Cmd+C`). Routine configuration reloads do **not** trigger this cleanup, so certificates remain valid while the server keeps running, but they don't pile up once the process actually exits.
+If you enable `revoke_on_exit`, all certificates issued by this module during a Caddy run are tracked and automatically revoked when the process shuts down (for example, when your container receives `SIGTERM`/`SIGINT` (Ctrl+C)). Routine configuration reloads do **not** trigger this cleanup, so certificates remain valid while the server keeps running, but they don't pile up once the process actually exits.
 
 This feature is **disabled by default** for backwards compatibility. To enable it, add `revoke_on_exit` to your issuer config:
 
