@@ -26,7 +26,7 @@ var requestTypeMap = map[x509.PublicKeyAlgorithm]string{
 }
 
 func init() {
-	caddy.RegisterModule(&CloudflareOriginCA{})
+	caddy.RegisterModule(CloudflareOriginCA{})
 	caddy.OnExit(func(ctx context.Context) {
 		issuedCerts.cleanup(ctx)
 	})
@@ -53,7 +53,7 @@ type CloudflareOriginCA struct {
 	client *Client
 }
 
-func (*CloudflareOriginCA) CaddyModule() caddy.ModuleInfo {
+func (CloudflareOriginCA) CaddyModule() caddy.ModuleInfo {
 	return caddy.ModuleInfo{
 		ID:  "tls.issuance.cloudflare_origin_ca",
 		New: func() caddy.Module { return new(CloudflareOriginCA) },
