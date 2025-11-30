@@ -186,6 +186,9 @@ func (c *CloudflareOriginCA) UnmarshalCaddyfile(d *caddyfile.Dispenser) error {
 				}
 				c.RequestedValidity = days
 			case "revoke_on_exit":
+				if d.NextArg() {
+					return d.Errf("revoke_on_exit does not take an argument")
+				}
 				c.RevokeOnExit = true
 			default:
 				return d.Errf("unrecognized option: %s", d.Val())
