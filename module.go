@@ -41,6 +41,11 @@ type CloudflareOriginCA struct {
 	// If not specified, lets Cloudflare pick a default (currently 15 years)
 	RequestedValidity int `json:"requested_validity,omitempty"`
 
+	// RevokeOnExit controls whether certificates issued by this module are
+	// automatically revoked when the Caddy process exits gracefully.
+	// Disabled by default.
+	RevokeOnExit bool `json:"revoke_on_exit,omitempty"`
+
 	// BaseURL allows overriding the API endpoint (optional, for testing)
 	BaseURL string `json:"base_url,omitempty"`
 
@@ -122,7 +127,9 @@ func (c *CloudflareOriginCA) Issue(ctx context.Context, csr *x509.CertificateReq
 	}
 
 	c.logger.Debug("certificate issued successfully", zap.String("id", certID))
-	issuedCerts.track(c.logger, c.client, certID)
+	if c.RevokeOnExit {
+		issuedCerts.track(c.logger, c.client, certID)
+	}
 
 	return &certmagic.IssuedCertificate{
 		Certificate: []byte(cert),
@@ -153,7 +160,9 @@ func (c *CloudflareOriginCA) Revoke(ctx context.Context, cert certmagic.Certific
 	}
 
 	logRevocationResult(c.logger, certID, result)
-	issuedCerts.forget(c.client, certID)
+	if c.RevokeOnExit {
+		issuedCerts.forget(c.client, certID)
+	}
 
 	return nil
 }
@@ -176,6 +185,8 @@ func (c *CloudflareOriginCA) UnmarshalCaddyfile(d *caddyfile.Dispenser) error {
 					return d.Errf("invalid validity_days: %v", err)
 				}
 				c.RequestedValidity = days
+			case "revoke_on_exit":
+				c.RevokeOnExit = true
 			default:
 				return d.Errf("unrecognized option: %s", d.Val())
 			}
