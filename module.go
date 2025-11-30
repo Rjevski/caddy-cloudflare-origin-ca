@@ -63,6 +63,10 @@ func (*CloudflareOriginCA) CaddyModule() caddy.ModuleInfo {
 func (c *CloudflareOriginCA) Provision(ctx caddy.Context) error {
 	c.logger = ctx.Logger(c)
 
+	if c.RevokeOnExit {
+        c.logger.Info("revoke_on_exit enabled: certificates will be revoked on process shutdown")
+    }
+
 	// Validate config
 	if c.ServiceKey == "" {
 		return fmt.Errorf("cloudflare service_key is required")
