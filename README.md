@@ -14,6 +14,13 @@ As a workaround, set the requested validity to the 15-year max. This is the defa
 
 Take the Dockerfile in this repo, tweak it if necessary, build it and push it to your private container registry.
 
+You can tweak the following [build arguments](https://docs.docker.com/reference/dockerfile/#arg) as necessary:
+
+* `BUILDER_IMAGE_VARIANT`: the `caddy` image tag to use as base during the build stage
+* `RUNTIME_IMAGE_VARIANT`: the `caddy` image tag to use as base during the runtime stage
+
+The runtime variant should ideally match the version of the builder; although the binary being copied from the builder stage means you will still end up with the Caddy from the builder stage; however the rest of the runtime image will expect its corresponding Caddy version, so a mismatch may lead to undefined behavior.
+
 If you're already building your own Caddy image, just add the `--with github.com/rjevski/caddy-cloudflare-origin-ca` option to your existing `xcaddy` invocation.
 
 ## Usage
