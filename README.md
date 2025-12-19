@@ -97,6 +97,19 @@ https://example.com, https:// {
 }
 ```
 
+## Automatic cleanup (opt-in)
+
+If you enable `revoke_on_exit`, all certificates issued by this module during a Caddy run are tracked and automatically revoked when the process shuts down (for example, when your container receives `SIGTERM`/`SIGINT` (Ctrl+C)). Routine configuration reloads do **not** trigger this cleanup, so certificates remain valid while the server keeps running, but they don't pile up once the process actually exits.
+
+This feature is **disabled by default** for backwards compatibility. To enable it, add `revoke_on_exit` to your issuer config:
+
+```
+issuer cloudflare_origin_ca {
+    service_key {$CF_ORIGIN_CA_SERVICE_KEY}
+    revoke_on_exit
+}
+```
+
 ## Credits
 
 This work has been graciously funded by [JobMaps](https://jobmaps.ch).

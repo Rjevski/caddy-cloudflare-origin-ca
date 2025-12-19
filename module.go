@@ -27,6 +27,9 @@ var requestTypeMap = map[x509.PublicKeyAlgorithm]string{
 
 func init() {
 	caddy.RegisterModule(CloudflareOriginCA{})
+	caddy.OnExit(func(ctx context.Context) {
+		issuedCerts.cleanup(ctx)
+	})
 }
 
 type CloudflareOriginCA struct {
@@ -40,6 +43,11 @@ type CloudflareOriginCA struct {
 	// RequestedValidity is the duration for certificate validity (optional, max 15 years)
 	// If not specified, lets Cloudflare pick a default (currently 15 years)
 	RequestedValidity int `json:"requested_validity,omitempty"`
+
+	// RevokeOnExit controls whether certificates issued by this module are
+	// automatically revoked when the Caddy process exits gracefully.
+	// Disabled by default.
+	RevokeOnExit bool `json:"revoke_on_exit,omitempty"`
 
 	// BaseURL allows overriding the API endpoint (optional, for testing)
 	BaseURL string `json:"base_url,omitempty"`
@@ -57,6 +65,10 @@ func (CloudflareOriginCA) CaddyModule() caddy.ModuleInfo {
 
 func (c *CloudflareOriginCA) Provision(ctx caddy.Context) error {
 	c.logger = ctx.Logger(c)
+
+	if c.RevokeOnExit {
+		c.logger.Info("revoke_on_exit enabled: certificates will be revoked on process shutdown")
+	}
 
 	// Validate config
 	if c.ServiceKey == "" && c.AccountAPIToken == "" {
@@ -126,6 +138,9 @@ func (c *CloudflareOriginCA) Issue(ctx context.Context, csr *x509.CertificateReq
 	}
 
 	c.logger.Debug("certificate issued successfully", zap.String("id", certID))
+	if c.RevokeOnExit {
+		issuedCerts.track(c.logger, c.client, certID)
+	}
 
 	return &certmagic.IssuedCertificate{
 		Certificate: []byte(cert),
@@ -155,14 +170,9 @@ func (c *CloudflareOriginCA) Revoke(ctx context.Context, cert certmagic.Certific
 		return err
 	}
 
-	if result.AlreadyRevoked {
-		c.logger.Info("certificate already revoked", zap.String("id", certID))
-	} else if result.NotFound {
-		c.logger.Warn("certificate not found in database, treating as already revoked", zap.String("id", certID))
-	} else {
-		c.logger.Info("certificate revoked successfully",
-			zap.String("id", certID),
-			zap.String("revoked_at", result.RevokedAt))
+	logRevocationResult(c.logger, certID, result)
+	if c.RevokeOnExit {
+		issuedCerts.forget(c.client, certID)
 	}
 
 	return nil
@@ -191,6 +201,11 @@ func (c *CloudflareOriginCA) UnmarshalCaddyfile(d *caddyfile.Dispenser) error {
 					return d.Errf("invalid validity_days: %v", err)
 				}
 				c.RequestedValidity = days
+			case "revoke_on_exit":
+				if d.NextArg() {
+					return d.Errf("revoke_on_exit does not take an argument")
+				}
+				c.RevokeOnExit = true
 			default:
 				return d.Errf("unrecognized option: %s", d.Val())
 			}
