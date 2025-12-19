@@ -25,7 +25,7 @@ If you're already building your own Caddy image, just add the `--with github.com
 
 ## Usage
 
-Go to your Cloudflare user profile and obtain an Origin CA key. This is an API key specifically scoped to Origin CA certificate operations, to adhere to the principle of least privilege.
+Go to your Cloudflare user profile and obtain an Origin CA key. This is an API key specifically scoped to Origin CA certificate operations, to adhere to the principle of least privilege. Alternatively, you can authenticate with an account-scoped API token (grant it the `Zone - SSL and Certificates - Edit` permission).
 
 ### Single domain
 
@@ -35,7 +35,10 @@ In your Caddyfile:
 https://example.com {
 	tls {
 		issuer cloudflare_origin_ca {
-			service_key "<YOUR API KEY HERE>"
+			# either provide a service key:
+			service_key "<YOUR ORIGIN CA KEY HERE>"
+			# ...or provide a scoped API token:
+			# account_api_token "<YOUR ACCOUNT API TOKEN HERE>"
 			# optional - do not set it low as renewal does not work, see "known issues"
 			# validity 7d
 		}
@@ -46,10 +49,12 @@ https://example.com {
 
 This will obtain and automatically renew a certificate for `example.com`. You need to make sure this domain is configured as a "proxied" domain in your Cloudflare DNS zone.
 
-Note: it's not recommended to hardcode API keys in your Caddyfile directly, instead pass it as an environment variable and use [interpolation/templating](https://caddyserver.com/docs/caddyfile/concepts#environment-variables) to reference it in your Caddyfile, like so:
+Note: it's not recommended to hardcode API keys in your Caddyfile directly, instead pass them as environment variables and use [interpolation/templating](https://caddyserver.com/docs/caddyfile/concepts#environment-variables) to reference them in your Caddyfile, like so:
 
 ```
 service_key {$CF_ORIGIN_CA_SERVICE_KEY}
+# or:
+# account_api_token {$CF_ACCOUNT_API_TOKEN}
 ```
 
 ### "Custom Hostnames"
@@ -78,9 +83,12 @@ Example:
     }
     
     cert_issuer cloudflare_origin_ca {
-		service_key "<YOUR API KEY HERE>"
-		# optional
-		validity 7d
+		# either provide a service key:
+		service_key "<YOUR ORIGIN CA KEY HERE>"
+		# ...or provide a scoped API token:
+		# account_api_token "<YOUR ACCOUNT API TOKEN HERE>"
+		# optional - do not set it low as renewal does not work, see "known issues"
+		# validity 7d
 	}
 }
 

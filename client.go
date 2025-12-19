@@ -16,16 +16,18 @@ const (
 
 // Client handles communication with the Cloudflare Origin CA API
 type Client struct {
-	serviceKey string
-	baseURL    string
-	httpClient *http.Client
+	serviceKey      string
+	accountAPIToken string
+	baseURL         string
+	httpClient      *http.Client
 }
 
 // NewClient creates a new Cloudflare Origin CA API client
-func NewClient(serviceKey string, options ...ClientOption) *Client {
+func NewClient(serviceKey, accountAPIToken string, options ...ClientOption) *Client {
 	c := &Client{
-		serviceKey: serviceKey,
-		baseURL:    DefaultCertificateAPIBaseURL,
+		serviceKey:      serviceKey,
+		accountAPIToken: accountAPIToken,
+		baseURL:         DefaultCertificateAPIBaseURL,
 		httpClient: &http.Client{
 			Timeout: 30 * time.Second,
 		},
@@ -104,7 +106,9 @@ func (c *Client) RequestCertificate(ctx context.Context, csr string, hostnames [
 	}
 
 	req.Header.Set("Content-Type", "application/json")
-	req.Header.Set("X-Auth-User-Service-Key", c.serviceKey)
+	if err := c.applyAuthHeaders(req); err != nil {
+		return "", "", err
+	}
 
 	resp, err := c.httpClient.Do(req)
 	if err != nil {
@@ -147,7 +151,9 @@ func (c *Client) RevokeCertificate(ctx context.Context, certID string) (*RevokeR
 		return nil, err
 	}
 
-	req.Header.Set("X-Auth-User-Service-Key", c.serviceKey)
+	if err := c.applyAuthHeaders(req); err != nil {
+		return nil, err
+	}
 
 	resp, err := c.httpClient.Do(req)
 	if err != nil {
@@ -186,4 +192,16 @@ func (c *Client) RevokeCertificate(ctx context.Context, certID string) (*RevokeR
 	return &RevokeResult{
 		RevokedAt: cfResp.Result.RevokedAt,
 	}, nil
+}
+
+func (c *Client) applyAuthHeaders(req *http.Request) error {
+	switch {
+	case c.serviceKey != "":
+		req.Header.Set("X-Auth-User-Service-Key", c.serviceKey)
+	case c.accountAPIToken != "":
+		req.Header.Set("Authorization", fmt.Sprintf("Bearer %s", c.accountAPIToken))
+	default:
+		return fmt.Errorf("cloudflare client missing authentication credentials")
+	}
+	return nil
 }
